@@ -4,6 +4,13 @@ Laporan ini memuat penjelasan teknis, arsitektur jaringan, serta dokumentasi out
 
 ---
 
+## Kelompok
+*   **Rafi Ikbar Fahrezy**
+*   **Nalendra Magi Jatayu**
+*   **M Rasya Hamdani**
+
+---
+
 ## 1. Topologi dan Pembagian IP Address
 Pengujian dilakukan menggunakan 3 laptop berbeda yang terhubung pada satu jaringan Wi-Fi lokal yang sama:
 
@@ -133,4 +140,59 @@ Avg RTT : 4.33 ms
 Max RTT : 5.12 ms
 Jitter  : 0.48 ms
 =======================================================
+
+---
+
+## 5. Analisis dengan Wireshark
+
+Pengamatan lalu lintas data pada jaringan Wi-Fi dilakukan menggunakan Wireshark untuk menganalisis protokol HTTP, TCP, dan UDP yang bekerja pada sistem.
+
+### A. Konfigurasi Capture
+1. Wireshark dijalankan pada antarmuka (*interface*) **Wi-Fi** yang terhubung ke router.
+2. Filter pencarian (Capture/Display Filter) yang digunakan untuk menyaring paket adalah:
+   ```text
+   tcp.port==8000 || tcp.port==8080 || udp.port==9000
+   ```
+   Filter ini membatasi lalu lintas agar hanya menampilkan request ke Web Server (8000), Proxy Server (8080), dan QoS UDP Server (9000).
+
+### B. Analisis HTTP
+Pada penangkapan paket HTTP GET dari Client ke Proxy:
+*   **HTTP Request (Client -> Proxy)**:
+    *   **Method**: `GET`
+    *   **Path**: `/index.html`
+    *   **Version**: `HTTP/1.1`
+    *   **Headers**: `Host: 192.168.18.49:8080`, `Connection: close`
+*   **HTTP Response (Proxy -> Client)**:
+    *   **Status Code**: `200 OK` (atau `502 Bad Gateway` saat server mati).
+    *   **Content-Type**: `text/html; charset=utf-8`
+    *   **Content-Length**: `4526` byte
+
+### C. Aliran TCP (TCP Flow)
+Setiap sesi komunikasi HTTP menggunakan protokol TCP yang andal dengan tahapan berikut:
+1.  **Three-Way Handshake** (Inisiasi):
+    *   `[SYN]`: Client mengirimkan segmen dengan flag SYN set ke Proxy/Web Server untuk menyelaraskan nomor urut (*Sequence Number*).
+    *   `[SYN, ACK]`: Server membalas dengan flag SYN dan ACK set sebagai tanda siap.
+    *   `[ACK]`: Client mengirimkan ACK kembali untuk mengonfirmasi pembukaan koneksi TCP.
+2.  **Transfer Data**:
+    *   Client mengirimkan HTTP Request menggunakan segmen dengan flag `[PSH, ACK]`.
+    *   Server/Proxy membalas dengan segmen berisi HTTP Response data (`[PSH, ACK]`).
+    *   Kedua belah pihak saling mengirim segmen `[ACK]` untuk mengonfirmasi bahwa data telah diterima dengan aman.
+3.  **Terminasi Koneksi**:
+    *   Karena header `Connection: close` digunakan, salah satu pihak mengirimkan segmen `[FIN, ACK]`.
+    *   Pihak lawan membalas dengan `[ACK]`, dilanjutkan dengan `[FIN, ACK]` miliknya sendiri, dan diakhiri dengan `[ACK]` final dari pihak pertama untuk menutup koneksi sepenuhnya.
+
+### D. QoS UDP
+Berbeda dengan TCP, lalu lintas UDP untuk QoS berjalan secara *connectionless* (tanpa handshake):
+*   **Format Payload**: Pesan dikirim dalam bentuk teks sederhana: `Ping <seq> <timestamp>` (contoh: `Ping 1 1718369400.123`).
+*   **Timestamp**: Digunakan untuk mengidentifikasi waktu mulai kirim di sisi client. Saat server mengembalikan pesan yang sama, selisih waktu penerimaan dengan timestamp ini menghasilkan **RTT**.
+*   **Urutan Paket (Sequence)**: Nomor urut (1 s.d. 10) digunakan untuk mendeteksi apabila ada paket yang hilang di tengah jalan (*packet loss*).
+
+### E. Aliran Konkuren (Concurrent Flows)
+Melalui menu **Statistics → Conversations → TCP** di Wireshark, dapat diamati beberapa aliran TCP simultan (*concurrent*):
+*   Saat Client memuat halaman web yang memiliki aset eksternal (seperti file CSS `style.css` dan gambar di folder `assets`), browser membuka beberapa koneksi TCP secara bersamaan ke port Proxy `8080`.
+*   Proxy Server secara simultan (menggunakan *multi-threading*) membuka koneksi paralel ke Web Server port `8000` untuk melayani semua aset tersebut secara konkuren demi mempercepat waktu pemuatan halaman.
+
+### F. Pemeriksaan Retransmisi (TCP Retransmissions)
+*   **Identifikasi**: Untuk melihat adanya kongesti atau kehilangan paket pada beban tinggi, digunakan display filter: `tcp.analysis.retransmission`.
+*   **Analisis**: Jika terjadi gangguan sinyal Wi-Fi atau overload pada Web Server, segmen ACK tidak diterima tepat waktu. Wireshark akan menandai paket tersebut dengan warna hitam/merah sebagai **TCP Retransmission** (pengiriman ulang segmen). Pada pengujian lokal normal dengan beban ringan, retransmisi tercatat 0%, menandakan jaringan dalam kondisi sangat sehat.
 ```
