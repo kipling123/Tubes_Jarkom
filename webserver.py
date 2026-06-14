@@ -86,6 +86,7 @@ def handle(conn, addr):
         log(addr[0], "-", 500)
     finally:
         conn.close()
+
 def tcp():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -103,6 +104,10 @@ def udp():
     while True:
         d, a = s.recvfrom(1024)
         s.sendto(d, a)
+        # Log penerimaan ping UDP QoS
+        ts = datetime.datetime.now().strftime('%H:%M:%S')
+        print(f"[{ts}] [UDP QoS] Menerima ping dari {a[0]}:{a[1]} - Payload: {d.decode(errors='ignore')}")
+
 
 if __name__ == "__main__":
     os.makedirs(WWW_DIR, exist_ok=True)
