@@ -2,11 +2,10 @@ import socket
 import time
 import sys
 
-# KONFIGURASI
-PROXY_HOST = "127.0.0.1"
+PROXY_HOST = "192.168.18.60"  # <-- Ganti dengan IP Laptop 2 (Proxy Server)
 PROXY_PORT = 8080
 
-SERVER_HOST = "127.0.0.1"
+SERVER_HOST = "192.168.18.50" # <-- Ganti dengan IP Laptop 1 (Web Server)
 UDP_PORT    = 9000
 
 UDP_PACKET_COUNT = 10   # minimal 10 paket

@@ -9,7 +9,7 @@ HOST = "0.0.0.0"
 PROXY_PORT = 8080           
 
 # Alamat Web Server
-WEB_SERVER_HOST = "127.0.0.1"
+WEB_SERVER_HOST = "192.168.18.50" # <-- Ganti dengan IP Laptop 1 (Web Server)
 WEB_SERVER_PORT = 8000
 
 # Folder untuk menyimpan cache lokal
