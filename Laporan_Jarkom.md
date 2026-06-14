@@ -145,7 +145,11 @@ Jitter  : 0.48 ms
 
 ## 5. Analisis dengan Wireshark
 
-Pengamatan lalu lintas data pada jaringan Wi-Fi dilakukan menggunakan Wireshark untuk menganalisis protokol HTTP, TCP, dan UDP yang bekerja pada sistem.
+Pengamatan lalu lintas data pada jaringan Wi-Fi dilakukan menggunakan Wireshark untuk menganalisis protokol HTTP, TCP, dan UDP yang bekerja pada sistem. 
+
+> [!NOTE]
+> File capture Wireshark hasil pengujian kami dapat diakses langsung pada berkas [analisis_jarkom.pcap](file:///c:/jarkom/analisis_jarkom.pcap). Berkas ini mencatat rekaman lalu lintas dari handshake TCP, request HTTP, hingga UDP QoS secara utuh.
+
 
 ### A. Konfigurasi Capture
 1. Wireshark dijalankan pada antarmuka (*interface*) **Wi-Fi** yang terhubung ke router.
