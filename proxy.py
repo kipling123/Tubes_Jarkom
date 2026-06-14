@@ -27,6 +27,19 @@ def url_to_cache_path(url_path):
     safe = url_path.strip("/").replace("/", "_") or "index.html"
     return os.path.join(CACHE_DIR, safe)
 
+# HELPER: Ambil isi custom error page untuk proxy
+def get_custom_error_page(status_code, fallback_text):
+    for folder in ["HTML", "www"]:
+        path = os.path.join(os.path.dirname(__file__), folder, "status", f"{status_code}.html")
+        if os.path.isfile(path):
+            try:
+                with open(path, "rb") as f:
+                    return f.read()
+            except:
+                pass
+    return f"<h1>{status_code} {fallback_text}</h1>".encode()
+
+
 # HELPER: Forward request ke Web Server
 def forward_to_webserver(request_bytes):
     """
@@ -99,6 +112,11 @@ def handle_client(conn, addr):
 
         method, url_path, _ = result
 
+        # Clean absolute URI
+        if url_path.startswith("http://") or url_path.startswith("https://"):
+            parts = url_path.split("://", 1)[1].split("/", 1)
+            url_path = "/" + parts[1] if len(parts) > 1 else "/"
+
         # Normalize path
         if url_path == "/":
             url_path = "/index.html"
@@ -129,7 +147,7 @@ def handle_client(conn, addr):
         response, error = forward_to_webserver(forward_request)
 
         if error == "timeout":
-            body = b"<h1>504 Gateway Timeout</h1>"
+            body = get_custom_error_page(504, "Gateway Timeout")
             resp = (
                 "HTTP/1.1 504 Gateway Timeout\r\n"
                 "Content-Type: text/html\r\n"
@@ -143,7 +161,7 @@ def handle_client(conn, addr):
             return
 
         if error or not response:
-            body = b"<h1>502 Bad Gateway</h1>"
+            body = get_custom_error_page(502, "Bad Gateway")
             resp = (
                 "HTTP/1.1 502 Bad Gateway\r\n"
                 "Content-Type: text/html\r\n"
@@ -169,7 +187,7 @@ def handle_client(conn, addr):
     except Exception as e:
         print(f"[ERROR] handle_client: {e}")
         try:
-            body = b"<h1>502 Bad Gateway</h1>"
+            body = get_custom_error_page(502, "Bad Gateway")
             resp = (
                 "HTTP/1.1 502 Bad Gateway\r\n"
                 "Content-Type: text/html\r\n"
